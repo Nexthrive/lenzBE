@@ -7,12 +7,19 @@ export function configureSecurity(app: Application) {
   app.disable('x-powered-by');
   app.use(helmet());
 
+  const isProduction = process.env.NODE_ENV === 'production';
   const origins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-  app.use(cors({
-    origin: origins.length > 0 ? origins : false,
-    credentials: false,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  }));
+
+  const corsOptions = {
+    origin: origins.length > 0 ? origins : (isProduction ? false : true),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const,
+  };
+
+  app.use(cors(corsOptions));
+  // Handle preflight for all routes (Express v5 + path-to-regexp v6)
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  app.options('/:path(*)', cors(corsOptions) as any);
 
   // Basic global limiter
   const globalLimiter = rateLimit({

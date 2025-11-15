@@ -67,7 +67,24 @@ router.post('/register', async (req, res) => {
   }
 
   if (error) return res.status(500).json({ error: error.message });
-  return res.status(201).json({ data });
+
+  // RETURN JWT
+  if (!data) {
+    return res.status(500).json({ error: 'Failed to create user' });
+  }
+  const user = {
+    id: data.iduser,
+    username: data.username,
+    email: data.email,
+    name: data.name,
+    role: (data.role || 'user').toString().toLowerCase(),
+  };
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    jwtSecret,
+    { expiresIn: '7d' }
+  );
+  return res.status(201).json({ token, user });
 });
 
 // POST /auth/login

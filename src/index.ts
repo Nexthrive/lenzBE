@@ -28,6 +28,27 @@ app.use('/auth', authRouter);
 app.use('/admin', adminRouter);
 app.use('/users', usersRouter);
 
+// Production-specific configurations
+if (process.env.NODE_ENV === 'production') {
+  // Enable CORS for specific domains
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+  const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+  };
+  app.use(cors(corsOptions));
+
+  // Enable trust proxy for reverse proxies
+  app.set('trust proxy', 1); // Trust the first proxy
+
+  // Additional production-specific middleware can be added here
+}
+
 // centralized error handler (last)
 app.use(errorHandler);
 
