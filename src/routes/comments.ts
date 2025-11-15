@@ -9,7 +9,7 @@ declare module 'express-serve-static-core' {
   }
 }
 
-const router = Router<{ id: string }>();
+const router = Router(); // Removed generic argument
 
 function toInt(value: unknown): number | null {
   const parsed = Number(value);
