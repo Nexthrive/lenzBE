@@ -45,7 +45,8 @@ router.post('/register', async (req, res) => {
   }
 
   const hashed = await bcrypt.hash(password, 10);
-  const roleLower = 'user';
+  const roleLower = normalizeRole(req.body.role);
+  const capitalized = roleLower === 'admin' ? 'Admin' : 'User';
 
   // Try insert with lowercase role
   let { data, error } = await supabase
@@ -56,7 +57,6 @@ router.post('/register', async (req, res) => {
 
   // If check constraint fails (e.g., expects 'Admin'/'User'), retry with capitalized
   if (error && (error as any).code === '23514') {
-    const capitalized = roleLower === 'admin' ? 'Admin' : 'User';
     const retry = await supabase
       .from('User')
       .insert([{ username, name, email, password: hashed, role: capitalized }])
@@ -112,9 +112,13 @@ router.post('/login', loginLimiter, async (req, res) => {
   const ok = await bcrypt.compare(password!, user.password);
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
-  const roleLower = (user.role || 'user').toString().toLowerCase();
-  const token = jwt.sign({ id: user.iduser, role: roleLower }, jwtSecret, { expiresIn: '7d' });
-  return res.json({ token, user: { id: user.iduser, username: user.username, email: user.email, role: roleLower } });
+  const normalizedRole = normalizeRole(user.role);
+  if (normalizedRole !== 'admin' && normalizedRole !== 'user') {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
+
+  const token = jwt.sign({ id: user.iduser, role: normalizedRole }, jwtSecret, { expiresIn: '7d' });
+  return res.json({ token, user: { id: user.iduser, username: user.username, email: user.email, role: normalizedRole } });
 });
 
 export default router;

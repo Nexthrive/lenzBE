@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import { supabase } from '../lib/supabase';
 import { verifyJWT } from '../middleware/auth';
+import { Request } from 'express';
 
-const router = Router({ mergeParams: true });
+declare module 'express-serve-static-core' {
+  interface ParamsDictionary {
+    id: string;
+  }
+}
+
+const router = Router<{ id: string }>();
 
 function toInt(value: unknown): number | null {
   const parsed = Number(value);
@@ -10,7 +17,7 @@ function toInt(value: unknown): number | null {
 }
 
 // GET /umkm/:id/comments
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request<{ id: string }>, res) => {
   const umkmId = toInt(req.params.id);
   if (umkmId === null) return res.status(400).json({ error: 'Invalid umkm id' });
 
@@ -25,7 +32,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /umkm/:id/comments
-router.post('/', verifyJWT, async (req, res) => {
+router.post('/', verifyJWT, async (req: Request<{ id: string }>, res) => {
   const umkmId = toInt(req.params.id);
   if (umkmId === null) return res.status(400).json({ error: 'Invalid umkm id' });
 
@@ -39,32 +46,17 @@ router.post('/', verifyJWT, async (req, res) => {
 
   const { data, error } = await supabase
     .from('Comments')
-    .insert([{ user: req.user!.id, umkm: umkmId, content, rating }])
-    .select('*')
-    .single();
+    .insert([{ user: req.user!.id, umkm: umkmId, content, rating }]);
 
   if (error) return res.status(500).json({ error: error.message });
-
-  // Update agregat rating pada tabel Umkm
-  const { data: umkm, error: umkmErr } = await supabase
-    .from('Umkm')
-    .select('rating, total_rating')
-    .eq('IDUmkm', umkmId)
-    .single();
-  if (umkmErr) return res.status(201).json({ data, warning: 'Failed to read Umkm aggregate' });
-
-  const currentAvg = Number(umkm?.rating ?? 0);
-  const currentCount = Number(umkm?.total_rating ?? 0);
-  const newCount = currentCount + 1;
-  const newAvg = ((currentAvg * currentCount) + rating) / newCount;
-
-  const { error: updErr } = await supabase
-    .from('Umkm')
-    .update({ rating: newAvg, total_rating: newCount })
-    .eq('IDUmkm', umkmId);
-
-  if (updErr) return res.status(201).json({ data, warning: 'Failed to update Umkm rating' });
   return res.status(201).json({ data });
+});
+
+router.use((req, res, next) => {
+  if (!req.params.id) {
+    return res.status(400).json({ error: 'Missing id parameter' });
+  }
+  next();
 });
 
 export default router;
