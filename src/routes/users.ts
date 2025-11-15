@@ -2,6 +2,13 @@ import { Router } from 'express';
 import multer from 'multer';
 import { verifyJWT } from '../middleware/auth';
 import { supabase } from '../lib/supabase';
+import { Request } from 'express';
+
+declare module 'express' {
+  export interface Request {
+    file?: Express.Multer.File;
+  }
+}
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });

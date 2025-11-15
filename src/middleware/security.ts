@@ -13,7 +13,7 @@ export function configureSecurity(app: Application) {
   const corsOptions = {
     origin: origins.length > 0 ? origins : (isProduction ? false : true),
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const,
+    methods: Array.from(["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]),
   };
 
   app.use(cors(corsOptions));
