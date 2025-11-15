@@ -19,7 +19,7 @@ export function configureSecurity(app: Application) {
   app.use(cors(corsOptions));
   // Handle preflight for all routes (Express v5 + path-to-regexp v6)
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  app.options('/*', cors(corsOptions) as any);
+  app.options('/:wildcard*', cors(corsOptions) as any);
 
   // Basic global limiter
   const globalLimiter = rateLimit({
